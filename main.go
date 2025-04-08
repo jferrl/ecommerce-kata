@@ -102,11 +102,11 @@ func (os *OrderService) CreateOrder(userID string, items []OrderItem) (Order, er
 		if err != nil {
 			return Order{}, err
 		}
-		
+
 		if product.StockQuantity < item.Quantity {
 			return Order{}, errors.New("insufficient stock for product: " + product.Name)
 		}
-		
+
 		items[i].Price = product.Price
 		totalAmount += product.Price * float64(item.Quantity)
 	}
@@ -122,7 +122,7 @@ func (os *OrderService) CreateOrder(userID string, items []OrderItem) (Order, er
 		CreatedAt:     time.Now(),
 	}
 	orders[orderID] = order
-	
+
 	return order, nil
 }
 
@@ -131,17 +131,17 @@ func (os *OrderService) ProcessOrder(orderID string) error {
 	if !exists {
 		return errors.New("order not found")
 	}
-	
+
 	if order.Status != "PENDING" {
 		return errors.New("order is already processed")
 	}
-	
+
 	paymentService := PaymentService{}
 	err := paymentService.ProcessPayment(order)
 	if err != nil {
 		return err
 	}
-	
+
 	productService := ProductService{}
 	for _, item := range order.Items {
 		err := productService.UpdateProductStock(item.ProductID, item.Quantity)
@@ -149,11 +149,11 @@ func (os *OrderService) ProcessOrder(orderID string) error {
 			return err
 		}
 	}
-	
+
 	order.Status = "PROCESSED"
 	order.PaymentStatus = "PAID"
 	orders[orderID] = order
-	
+
 	return nil
 }
 
@@ -163,47 +163,47 @@ func (ps *PaymentService) ProcessPayment(order Order) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if user.PaymentInfo.CardNumber == "" {
 		return errors.New("payment information not available")
 	}
-	
-	fmt.Printf("Processing payment of $%.2f for order %s with card ending in %s\n", 
-		order.TotalAmount, 
-		order.ID, 
+
+	fmt.Printf("Processing payment of $%.2f for order %s with card ending in %s\n",
+		order.TotalAmount,
+		order.ID,
 		user.PaymentInfo.CardNumber[len(user.PaymentInfo.CardNumber)-4:])
-	
+
 	return nil
 }
 
 func main() {
 	orderService := OrderService{}
-	
+
 	orderItems := []OrderItem{
 		{ProductID: "P001", Quantity: 1},
 		{ProductID: "P003", Quantity: 2},
 	}
-	
+
 	order, err := orderService.CreateOrder("U001", orderItems)
 	if err != nil {
 		fmt.Println("Error creating order:", err)
 		return
 	}
-	
+
 	fmt.Printf("Order created with ID: %s, Total Amount: $%.2f\n", order.ID, order.TotalAmount)
-	
+
 	err = orderService.ProcessOrder(order.ID)
 	if err != nil {
 		fmt.Println("Error processing order:", err)
 		return
 	}
-	
+
 	processedOrder := orders[order.ID]
-	fmt.Printf("Order %s status: %s, Payment status: %s\n", 
-		processedOrder.ID, 
-		processedOrder.Status, 
+	fmt.Printf("Order %s status: %s, Payment status: %s\n",
+		processedOrder.ID,
+		processedOrder.Status,
 		processedOrder.PaymentStatus)
-	
+
 	for _, product := range products {
 		fmt.Printf("Product: %s, Stock remaining: %d\n", product.Name, product.StockQuantity)
 	}
